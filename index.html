@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>豆豆英语 · 动画宠物学英语</title>
+<style>
+  :root{
+    --bg:#f4fbf0; --card:#ffffff; --ink:#2b3a2b; --sub:#7a8a72;
+    --green:#7ac74f; --green-d:#5fae34; --green-l:#d6f5b8;
+    --orange:#f4a300; --red:#ff6b6b; --blue:#4dabf7;
+    --shadow:0 6px 20px rgba(95,174,52,.18);
+    --radius:20px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:linear-gradient(180deg,#eaf7df 0%,#f4fbf0 40%);
+    color:var(--ink); min-height:100vh;
+    display:flex; justify-content:center;
+  }
+  #app{width:100%; max-width:480px; min-height:100vh; position:relative; padding-bottom:74px}
+
+  /* 顶栏 */
+  .topbar{
+    display:flex; align-items:center; gap:10px;
+    padding:14px 16px; position:sticky; top:0; z-index:20;
+    background:rgba(244,251,240,.9); backdrop-filter:blur(8px);
+  }
+  .stat{
+    display:flex; align-items:center; gap:4px;
+    background:var(--card); border-radius:14px; padding:6px 11px;
+    font-weight:700; font-size:14px; box-shadow:var(--shadow);
+  }
+  .stat .ico{font-size:16px}
+  .topbar .spacer{flex:1}
+  .lvl-badge{
+    background:var(--green); color:#fff; border-radius:14px; padding:6px 11px;
+    font-weight:800; font-size:14px; box-shadow:var(--shadow);
+  }
+
+  /* 通用卡片 */
+  .screen{display:none; padding:0 16px; animation:fade .35s ease}
+  .screen.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* 宠物舞台 */
+  .stage{
+    position:relative; height:300px; margin:8px 0 4px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .pet-wrap{animation:bob 3s ease-in-out infinite; transform-origin:center bottom}
+  .pet-wrap.happy{animation:hop .5s ease infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  @keyframes hop{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-22px) rotate(3deg)}}
+  #pet{width:210px;height:210px;overflow:visible}
+  .eyes{transform-box:fill-box;transform-origin:center;animation:blink 4.2s infinite}
+  @keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
+
+  .bubble{
+    position:absolute; top:6px; left:50%; transform:translateX(-50%);
+    background:var(--card); border-radius:18px; padding:10px 16px;
+    font-size:15px; font-weight:600; box-shadow:var(--shadow); max-width:80%;
+    text-align:center; border:2px solid var(--green-l);
+  }
+  .bubble:after{
+    content:""; position:absolute; bottom:-9px; left:50%; transform:translateX(-50%);
+    border:9px solid transparent; border-top-color:var(--card);
+  }
+  .hearts{position:absolute; inset:0; pointer-events:none; overflow:hidden}
+  .heart{position:absolute; font-size:22px; animation:floatUp 1.4s ease-out forwards}
+  @keyframes floatUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-120px)}}
+
+  /* 进度条（宠物心情） */
+  .mood{margin:0 16px 8px; background:var(--card); border-radius:16px; padding:12px 14px; box-shadow:var(--shadow)}
+  .mood .row{display:flex; justify-content:space-between; font-size:13px; color:var(--sub); margin-bottom:6px}
+  .bar{height:12px; background:var(--green-l); border-radius:8px; overflow:hidden}
+  .bar > i{display:block; height:100%; background:linear-gradient(90deg,var(--green),var(--orange)); transition:width .5s}
+
+  /* 关卡卡片 */
+  .section-title{font-size:18px;font-weight:800;margin:18px 4px 10px}
+  .unit-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .unit{
+    background:var(--card); border-radius:var(--radius); padding:14px;
+    box-shadow:var(--shadow); cursor:pointer; transition:transform .15s;
+    border:2px solid transparent;
+  }
+  .unit:active{transform:scale(.96)}
+  .unit .emoji{font-size:34px}
+  .unit .name{font-weight:800; margin-top:6px; font-size:15px}
+  .unit .meta{font-size:12px; color:var(--sub); margin-top:2px}
+  .unit.done{border-color:var(--green)}
+
+  /* 练习区 */
+  .quiz{padding:4px 0 10px}
+  .q-head{display:flex; align-items:center; gap:10px; margin:6px 2px 14px}
+  .q-progress{flex:1; height:8px; background:var(--green-l); border-radius:6px; overflow:hidden}
+  .q-progress > i{display:block; height:100%; background:var(--green); transition:width .3s}
+  .q-type{font-size:13px; color:var(--sub); font-weight:700}
+  .q-prompt{
+    text-align:center; font-size:22px; font-weight:800; margin:10px 0 4px;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .q-prompt .big-emoji{font-size:54px}
+  .q-prompt .cn{font-size:16px; color:var(--sub); font-weight:600}
+  .speak-btn{
+    background:var(--blue); color:#fff; border:none; border-radius:14px;
+    padding:10px 18px; font-size:15px; font-weight:700; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px; box-shadow:var(--shadow);
+  }
+  .speak-btn:active{transform:scale(.95)}
+  .opts{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px}
+  .opt{
+    background:var(--card); border:2px solid var(--green-l); border-radius:16px;
+    padding:16px 8px; text-align:center; cursor:pointer; font-size:17px; font-weight:700;
+    box-shadow:var(--shadow); transition:transform .12s; user-select:none;
+  }
+  .opt .e{font-size:38px; display:block; margin-bottom:4px}
+  .opt:active{transform:scale(.94)}
+  .opt.correct{border-color:var(--green); background:var(--green-l); animation:pop .4s}
+  .opt.wrong{border-color:var(--red); background:#ffe3e3; animation:shake .4s}
+  @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+  .spell-input{
+    width:100%; padding:14px; font-size:20px; text-align:center; border-radius:16px;
+    border:2px solid var(--green-l); outline:none; margin-top:14px; font-weight:700;
+    box-shadow:var(--shadow);
+  }
+  .spell-input:focus{border-color:var(--green)}
+  .btn{
+    width:100%; margin-top:14px; padding:15px; border:none; border-radius:16px;
+    background:var(--green); color:#fff; font-size:17px; font-weight:800; cursor:pointer;
+    box-shadow:var(--shadow);
+  }
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:#fff; color:var(--green-d); border:2px solid var(--green-l)}
+  .btn:disabled{opacity:.5}
+
+  /* 结算 */
+  .result{text-align:center; padding:20px 0}
+  .result .score{font-size:54px; font-weight:900; color:var(--green-d)}
+  .result .line{font-size:16px; margin:6px 0}
+
+  /* 我的 */
+  .panel{background:var(--card); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); margin-bottom:14px}
+  .panel h3{margin:0 0 12px; font-size:16px}
+  .field{display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f0f4ec}
+  .field:last-child{border-bottom:none}
+  .field label{color:var(--sub); font-size:14px}
+  .field input[type=text]{border:none; border-bottom:2px solid var(--green-l); font-size:15px; padding:4px 6px; width:140px; text-align:right; outline:none; font-weight:700}
+  .field input[type=range]{width:120px}
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; text-align:center}
+  .stat-box{background:var(--green-l); border-radius:14px; padding:12px 4px}
+  .stat-box b{display:block; font-size:22px; color:var(--green-d)}
+  .stat-box span{font-size:12px; color:var(--sub)}
+
+  /* 底部导航 */
+  .tabbar{
+    position:fixed; bottom:0; width:100%; max-width:480px;
+    display:flex; background:var(--card); border-top:1px solid #eef3ea; z-index:30;
+  }
+  .tab{flex:1; text-align:center; padding:10px 0 12px; font-size:12px; color:var(--sub); cursor:pointer; font-weight:700}
+  .tab .ti{font-size:22px; display:block; margin-bottom:2px}
+  .tab.active{color:var(--green-d)}
+
+  /* 装扮 */
+  .skins{display:flex; gap:12px; flex-wrap:wrap}
+  .skin{width:64px; text-align:center; font-size:12px; color:var(--sub)}
+  .skin .sw{width:64px;height:64px;border-radius:16px;background:var(--green-l);display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:4px;cursor:pointer;border:2px solid transparent}
+  .skin.on .sw{border-color:var(--green)}
+  .skin.locked .sw{filter:grayscale(1); opacity:.5; cursor:not-allowed}
+  .toast{
+    position:fixed; left:50%; bottom:90px; transform:translateX(-50%);
+    background:var(--ink); color:#fff; padding:10px 18px; border-radius:14px;
+    font-size:14px; opacity:0; transition:opacity .3s; z-index:50; pointer-events:none;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="stat"><span class="ico">🔥</span><span id="t-streak">0</span></div>
+    <div class="stat"><span class="ico">⭐</span><span id="t-xp">0</span></div>
+    <div class="stat"><span class="ico">❤️</span><span id="t-hearts">5</span></div>
+    <div class="spacer"></div>
+    <div class="lvl-badge">Lv.<span id="t-level">1</span></div>
+  </div>
+
+  <!-- 学一学 -->
+  <div class="screen active" id="screen-learn">
+    <div class="stage">
+      <div class="bubble" id="bubble">你好！我是豆豆，我们一起学英语吧～</div>
+      <div class="pet-wrap" id="petWrap">
+        <svg id="pet" viewBox="0 0 200 200">
+          <ellipse cx="100" cy="115" rx="62" ry="58" fill="#7ac74f"/>
+          <ellipse cx="100" cy="125" rx="38" ry="40" fill="#d6f5b8"/>
+          <ellipse cx="42" cy="120" rx="15" ry="30" fill="#5fae34" transform="rotate(-15 42 120)"/>
+          <ellipse cx="158" cy="120" rx="15" ry="30" fill="#5fae34" transform="rotate(15 158 120)"/>
+          <path d="M85,170 l-9,13 M85,170 l0,15 M85,170 l9,13" stroke="#f4a300" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <path d="M115,170 l-9,13 M115,170 l0,15 M115,170 l9,13" stroke="#f4a300" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <g class="eyes">
+            <circle cx="78" cy="100" r="20" fill="#fff"/>
+            <circle cx="122" cy="100" r="20" fill="#fff"/>
+            <circle cx="78" cy="102" r="9" fill="#2b2b2b"/>
+            <circle cx="122" cy="102" r="9" fill="#2b2b2b"/>
+            <circle cx="74" cy="96" r="3" fill="#fff"/>
+            <circle cx="118" cy="96" r="3" fill="#fff"/>
+          </g>
+          <path id="browL" d="M62,80 Q78,74 94,80" stroke="#3c6b1f" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path id="browR" d="M106,80 Q122,74 138,80" stroke="#3c6b1f" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path d="M88,118 L112,118 L100,132 Z" fill="#f4a300"/>
+          <path id="mouth" d="M85,140 Q100,150 115,140" stroke="#3c6b1f" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <g id="acc-hat" style="display:none">
+            <path d="M100,18 L130,52 L70,52 Z" fill="#ff6b6b"/>
+            <circle cx="100" cy="16" r="6" fill="#ffe066"/>
+            <path d="M70,52 Q100,62 130,52" stroke="#fff" stroke-width="4" fill="none"/>
+          </g>
+          <g id="acc-glasses" style="display:none">
+            <circle cx="78" cy="100" r="22" fill="none" stroke="#2b2b2b" stroke-width="3"/>
+            <circle cx="122" cy="100" r="22" fill="none" stroke="#2b2b2b" stroke-width="3"/>
+            <path d="M100,100 h0" stroke="#2b2b2b" stroke-width="3"/>
+          </g>
+        </svg>
+      </div>
+      <div class="hearts" id="hearts"></div>
+    </div>
+
+    <div class="mood">
+      <div class="row"><span id="mood-label">豆豆心情</span><span id="mood-pct">80%</span></div>
+      <div class="bar"><i id="mood-bar" style="width:80%"></i></div>
+    </div>
+
+    <div class="section-title">📚 选一关开始学</div>
+    <div class="unit-grid" id="unitGrid"></div>
+  </div>
+
+  <!-- 练习 -->
+  <div class="screen" id="screen-quiz">
+    <div class="quiz">
+      <div class="q-head">
+        <span class="q-type" id="qType">听力</span>
+        <div class="q-progress"><i id="qBar" style="width:0%"></i></div>
+        <span id="qCount" style="font-weight:700;font-size:13px;color:var(--sub)">1/8</span>
+      </div>
+      <div class="q-prompt" id="qPrompt"></div>
+      <div id="qBody"></div>
+    </div>
+  </div>
+
+  <!-- 宠物 / 装扮 -->
+  <div class="screen" id="screen-pet">
+    <div class="stage" style="height:240px">
+      <div class="pet-wrap" id="petWrap2">
+        <svg id="pet2" viewBox="0 0 200 200" style="width:200px;height:200px;overflow:visible">
+          <ellipse cx="100" cy="115" rx="62" ry="58" fill="#7ac74f"/>
+          <ellipse cx="100" cy="125" rx="38" ry="40" fill="#d6f5b8"/>
+          <ellipse cx="42" cy="120" rx="15" ry="30" fill="#5fae34" transform="rotate(-15 42 120)"/>
+          <ellipse cx="158" cy="120" rx="15" ry="30" fill="#5fae34" transform="rotate(15 158 120)"/>
+          <path d="M85,170 l-9,13 M85,170 l0,15 M85,170 l9,13" stroke="#f4a300" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <path d="M115,170 l-9,13 M115,170 l0,15 M115,170 l9,13" stroke="#f4a300" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <g class="eyes">
+            <circle cx="78" cy="100" r="20" fill="#fff"/>
+            <circle cx="122" cy="100" r="20" fill="#fff"/>
+            <circle cx="78" cy="102" r="9" fill="#2b2b2b"/>
+            <circle cx="122" cy="102" r="9" fill="#2b2b2b"/>
+            <circle cx="74" cy="96" r="3" fill="#fff"/>
+            <circle cx="118" cy="96" r="3" fill="#fff"/>
+          </g>
+          <path d="M62,80 Q78,74 94,80" stroke="#3c6b1f" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path d="M106,80 Q122,74 138,80" stroke="#3c6b1f" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path d="M88,118 L112,118 L100,132 Z" fill="#f4a300"/>
+          <path d="M85,140 Q100,150 115,140" stroke="#3c6b1f" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <g id="acc-hat2" style="display:none">
+            <path d="M100,18 L130,52 L70,52 Z" fill="#ff6b6b"/>
+            <circle cx="100" cy="16" r="6" fill="#ffe066"/>
+          </g>
+          <g id="acc-glasses2" style="display:none">
+            <circle cx="78" cy="100" r="22" fill="none" stroke="#2b2b2b" stroke-width="3"/>
+            <circle cx="122" cy="100" r="22" fill="none" stroke="#2b2b2b" stroke-width="3"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>🎀 给豆豆换装（学够等级自动解锁）</h3>
+      <div class="skins" id="skinList"></div>
+    </div>
+    <div class="panel">
+      <h3>💡 怎么让豆豆更开心？</h3>
+      <p style="color:var(--sub);font-size:14px;line-height:1.7;margin:0">
+        每答对一题豆豆心情 +5，答错 -3。去「学一学」多闯几关，豆豆就会越长越大、解锁新装扮！
+        每天来签到，连续打卡火苗 🔥 不会断。
+      </p>
+    </div>
+  </div>
+
+  <!-- 我的 -->
+  <div class="screen" id="screen-me">
+    <div class="panel">
+      <h3>📊 我的学习数据</h3>
+      <div class="stat-grid">
+        <div class="stat-box"><b id="m-xp">0</b><span>总经验</span></div>
+        <div class="stat-box"><b id="m-streak">0</b><span>连续天数</span></div>
+        <div class="stat-box"><b id="m-words">0</b><span>已学单词</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>⚙️ 设置</h3>
+      <div class="field">
+        <label>宠物名字</label>
+        <input type="text" id="set-name" value="豆豆" maxlength="6">
+      </div>
+      <div class="field">
+        <label>英语语速</label>
+        <input type="range" id="set-rate" min="0.6" max="1.2" step="0.05" value="0.9">
+      </div>
+      <div class="field">
+        <label>朗读语言</label>
+        <span id="set-lang-val" style="font-weight:700">中文鼓励+英文单词</span>
+      </div>
+      <button class="btn ghost" id="resetBtn" style="margin-top:12px">清空进度重新开始</button>
+    </div>
+    <div class="panel">
+      <h3>🧬 这是怎么"克隆"多邻国的</h3>
+      <p style="color:var(--sub);font-size:13px;line-height:1.7;margin:0">
+        抓了三样：① <b>宠物情感钩子</b>（学=喂豆豆，豆豆涨等级）；② <b>听→选→拼→读四步闭环</b>（把声音和拼写焊一起）；③ <b>打卡连胜+经验升级</b>（损失厌恶让你每天都想点开）。
+        发音用浏览器自带 TTS，无需联网服务器；进度存在本机，隐私不出设备。
+      </p>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab active" data-tab="learn"><span class="ti">📚</span>学一学</div>
+    <div class="tab" data-tab="pet"><span class="ti">🐣</span>豆豆</div>
+    <div class="tab" data-tab="me"><span class="ti">👤</span>我的</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 数据 ============ */
+const UNITS = [
+  {id:'animals', name:'动物', emoji:'🐱', words:[
+    {en:'cat',cn:'猫',e:'🐱'},{en:'dog',cn:'狗',e:'🐶'},{en:'bird',cn:'鸟',e:'🐦'},
+    {en:'fish',cn:'鱼',e:'🐟'},{en:'cow',cn:'牛',e:'🐮'},{en:'pig',cn:'猪',e:'🐷'}]},
+  {id:'food', name:'食物', emoji:'🍎', words:[
+    {en:'apple',cn:'苹果',e:'🍎'},{en:'banana',cn:'香蕉',e:'🍌'},{en:'egg',cn:'鸡蛋',e:'🥚'},
+    {en:'milk',cn:'牛奶',e:'🥛'},{en:'rice',cn:'米饭',e:'🍚'},{en:'water',cn:'水',e:'💧'}]},
+  {id:'daily', name:'日常', emoji:'👋', words:[
+    {en:'hello',cn:'你好',e:'👋'},{en:'thank you',cn:'谢谢',e:'🙏'},{en:'mom',cn:'妈妈',e:'👩'},
+    {en:'dad',cn:'爸爸',e:'👨'},{en:'book',cn:'书',e:'📖'},{en:'sun',cn:'太阳',e:'☀️'}]},
+  {id:'colors', name:'颜色数字', emoji:'🌈', words:[
+    {en:'red',cn:'红色',e:'🔴'},{en:'blue',cn:'蓝色',e:'🔵'},{en:'one',cn:'一',e:'1️⃣'},
+    {en:'two',cn:'二',e:'2️⃣'},{en:'three',cn:'三',e:'3️⃣'},{en:'happy',cn:'开心',e:'😊'}]},
+];
+const SKINS = [
+  {id:'none', name:'素颜', need:1, ico:'🐣'},
+  {id:'hat',  name:'派对帽', need:2, ico:'🎉'},
+  {id:'glasses', name:'小眼镜', need:3, ico:'👓'},
+];
+
+/* ============ 状态 ============ */
+const KEY='petEnglish_v1';
+let S = load();
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(KEY)); if(d) return d;}catch(e){}
+  return {name:'豆豆', xp:0, level:1, happiness:80, hearts:5, streak:0,
+    lastVisit:'', learned:[], rate:0.9, skin:'none'};
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function yesterday(){ const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }
+
+/* 打卡连胜 */
+function checkStreak(){
+  const t=today();
+  if(S.lastVisit===t) return;
+  if(S.lastVisit===yesterday()) S.streak++;
+  else S.streak = 1;
+  S.lastVisit=t;
+  if(S.streak>1) toast('🔥 连续打卡 '+S.streak+' 天！');
+  save();
+}
+
+/* ============ 发音 ============ */
+let voice=null;
+function pickVoice(){
+  const vs=speechSynthesis.getVoices();
+  voice = vs.find(v=>/en[-_]US/i.test(v.lang)) || vs.find(v=>/^en/i.test(v.lang)) || null;
+}
+if('speechSynthesis' in window){
+  pickVoice(); speechSynthesis.onvoiceschanged=pickVoice;
+}
+function speak(text, rate){
+  if(!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US'; u.rate = rate||S.rate;
+  if(voice) u.voice=voice;
+  speechSynthesis.speak(u);
+}
+/* 简单音效 */
+function beep(freq, dur, type){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type=type||'sine'; o.frequency.value=freq;
+    o.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(.15, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+dur);
+    o.start(); o.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+
+/* ============ 宠物表情 ============ */
+function setMood(m){
+  S.happiness=Math.max(0,Math.min(100,m));
+  save();
+  const bar=document.getElementById('mood-bar'), pct=document.getElementById('mood-pct');
+  bar.style.width=S.happiness+'%'; pct.textContent=Math.round(S.happiness)+'%';
+  document.getElementById('mood-label').textContent=S.name+'心情';
+  // 表情随心情
+  const mouth=document.getElementById('mouth');
+  if(S.happiness>=60) mouth.setAttribute('d','M85,140 Q100,152 115,140');
+  else if(S.happiness>=30) mouth.setAttribute('d','M88,142 L112,142');
+  else mouth.setAttribute('d','M85,146 Q100,134 115,146');
+}
+function petSay(txt, happy){
+  const b=document.getElementById('bubble'); b.textContent=txt;
+  const wrap=document.getElementById('petWrap');
+  if(happy){ wrap.classList.add('happy'); setTimeout(()=>wrap.classList.remove('happy'),1400); spawnHearts(); }
+}
+function spawnHearts(){
+  const box=document.getElementById('hearts');
+  for(let i=0;i<6;i++){
+    const h=document.createElement('div'); h.className='heart'; h.textContent='💚';
+    h.style.left=(30+Math.random()*40)+'%'; h.style.bottom='20px';
+    h.style.animationDelay=(i*0.1)+'s';
+    box.appendChild(h); setTimeout(()=>h.remove(),1500);
+  }
+}
+
+/* ============ 顶部/数据刷新 ============ */
+function refresh(){
+  S.level = Math.floor(S.xp/100)+1;
+  document.getElementById('t-streak').textContent=S.streak;
+  document.getElementById('t-xp').textContent=S.xp;
+  document.getElementById('t-hearts').textContent=S.hearts;
+  document.getElementById('t-level').textContent=S.level;
+  document.getElementById('m-xp').textContent=S.xp;
+  document.getElementById('m-streak').textContent=S.streak;
+  document.getElementById('m-words').textContent=S.learned.length;
+  setMood(S.happiness);
+}
+
+/* ============ 单元列表 ============ */
+function renderUnits(){
+  const grid=document.getElementById('unitGrid'); grid.innerHTML='';
+  UNITS.forEach((u,i)=>{
+    const done=S.learned.filter(w=>u.words.some(x=>x.en===w)).length>=u.words.length;
+    const el=document.createElement('div');
+    el.className='unit'+(done?' done':'');
+    el.innerHTML=`<div class="emoji">${u.emoji}</div><div class="name">${u.name}</div>
+      <div class="meta">${u.words.length} 个词 ${done?'✅已通关':''}</div>`;
+    el.onclick=()=>startLesson(i);
+    grid.appendChild(el);
+  });
+}
+
+/* ============ 关卡逻辑 ============ */
+let cur=null, qIdx=0, qTotal=0, qCorrect=0, qWrong=0;
+const PRAISE=['太棒了！','答对啦！👏','豆豆为你骄傲！','就是这样！','你真厉害！'];
+const COMFORT=['没关系，再试一次～','差一点点，豆豆相信你','记住它，下次就对啦'];
+
+function startLesson(ui){
+  const unit=UNITS[ui];
+  cur=unit;
+  // 生成 8 道题（循环题型，覆盖单词）
+  const words=unit.words;
+  const rounds=[];
+  const types=['listen','cn2en','spell','speak'];
+  for(let i=0;i<8;i++){
+    rounds.push({word:words[i%words.length], type:types[i%types.length]});
+  }
+  // 打乱一点
+  qIdx=0; qTotal=rounds.length; qCorrect=0; qWrong=0;
+  cur.rounds=rounds;
+  switchTab('quiz');
+  document.getElementById('qBar').style.width='0%';
+  nextRound();
+}
+
+function nextRound(){
+  if(qIdx>=cur.rounds.length){ endLesson(); return; }
+  document.getElementById('qBar').style.width=((qIdx)/qTotal*100)+'%';
+  document.getElementById('qCount').textContent=(qIdx+1)+'/'+qTotal;
+  const r=cur.rounds[qIdx];
+  const body=document.getElementById('qBody'); body.innerHTML='';
+  const prompt=document.getElementById('qPrompt'); prompt.innerHTML='';
+
+  if(r.type==='listen'){
+    document.getElementById('qType').textContent='👂 听一听，选一选';
+    prompt.innerHTML=`<button class="speak-btn" onclick="speak('${r.word.en}',1)">🔊 点我听发音</button>`;
+    const pool=[r.word, ...shuffle(cur.words.filter(w=>w.en!==r.word)).slice(0,3)];
+    const opts=shuffle(pool);
+    const grid=document.createElement('div'); grid.className='opts';
+    opts.forEach(o=>{
+      const d=document.createElement('div'); d.className='opt';
+      d.innerHTML=`<span class="e">${o.e}</span>${o.cn}`;
+      d.onclick=()=>judge(d, o.en===r.word.en);
+      grid.appendChild(d);
+    });
+    body.appendChild(grid);
+  }
+  else if(r.type==='cn2en'){
+    document.getElementById('qType').textContent='🔤 看中文，选英文';
+    prompt.innerHTML=`<div class="big-emoji">${r.word.e}</div><div class="cn">${r.word.cn} 用英语怎么说？</div>`;
+    const pool=[r.word, ...shuffle(cur.words.filter(w=>w.en!==r.word.en)).slice(0,3)];
+    const opts=shuffle(pool);
+    const grid=document.createElement('div'); grid.className='opts';
+    opts.forEach(o=>{
+      const d=document.createElement('div'); d.className='opt';
+      d.textContent=o.en;
+      d.onclick=()=>judge(d, o.en===r.word.en);
+      grid.appendChild(d);
+    });
+    body.appendChild(grid);
+  }
+  else if(r.type==='spell'){
+    document.getElementById('qType').textContent='✍️ 拼一拼';
+    prompt.innerHTML=`<div class="big-emoji">${r.word.e}</div><div class="cn">${r.word.cn}（点击听发音）</div>
+      <button class="speak-btn" onclick="speak('${r.word.en}',1)">🔊 听</button>`;
+    const inp=document.createElement('input');
+    inp.className='spell-input'; inp.placeholder='输入英文拼写…'; inp.autocapitalize='none';
+    const btn=document.createElement('button'); btn.className='btn'; btn.textContent='确认';
+    btn.onclick=()=>{
+      const v=inp.value.trim().toLowerCase();
+      const ok = v===r.word.en;
+      btn.disabled=true; inp.disabled=true;
+      judge(null, ok, ok?'拼写正确！':('正确是：'+r.word.en));
+    };
+    body.appendChild(inp); body.appendChild(btn);
+    setTimeout(()=>inp.focus(),100);
+  }
+  else if(r.type==='speak'){
+    document.getElementById('qType').textContent='🗣️ 跟读';
+    prompt.innerHTML=`<div class="big-emoji">${r.word.e}</div>
+      <div class="cn">${r.word.en}</div>
+      <button class="speak-btn" onclick="speak('${r.word.en}',0.8)">🔊 听一遍</button>`;
+    const btn=document.createElement('button'); btn.className='btn'; btn.textContent='🎤 我读好了';
+    btn.onclick=()=>doSpeak(btn, r.word.en);
+    body.appendChild(btn);
+  }
+}
+
+function judge(el, correct, msg){
+  if(correct){
+    qCorrect++;
+    if(el){ el.classList.add('correct'); }
+    beep(880,.12,'sine');
+    petSay(PRAISE[Math.floor(Math.random()*PRAISE.length)], true);
+    setMood(S.happiness+5);
+    if(!S.learned.includes(cur.rounds[qIdx].word.en)){
+      S.learned.push(cur.rounds[qIdx].word.en); save();
+    }
+  }else{
+    qWrong++;
+    if(el){ el.classList.add('wrong'); }
+    beep(220,.18,'sawtooth');
+    petSay(msg||COMFORT[Math.floor(Math.random()*COMFORT.length)], false);
+    setMood(S.happiness-3);
+  }
+  setTimeout(()=>{ qIdx++; nextRound(); }, correct?850:1150);
+}
+
+/* 跟读：尝试语音识别，不支持则自我评估 */
+function doSpeak(btn, word){
+  btn.disabled=true; btn.textContent='认真听…';
+  if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
+    const Rec = window.SpeechRecognition||window.webkitSpeechRecognition;
+    const rec=new Rec(); rec.lang='en-US'; rec.interimResults=false; rec.maxAlternatives=1;
+    rec.onresult=e=>{
+      const said=(e.results[0][0].transcript||'').toLowerCase().replace(/[^a-z\s]/g,'').trim();
+      const ok = said.includes(word.toLowerCase());
+      judge(null, ok, ok?'读得真标准！':('豆豆听到：'+said+'，再跟读一次~'));
+    };
+    rec.onerror=()=>{ judge(null, true, '豆豆相信你读对啦！👏'); };
+    rec.start();
+    setTimeout(()=>{ try{rec.stop();}catch(e){} }, 4000);
+  }else{
+    // 不支持识别：鼓励为主
+    speak(word,0.8);
+    setTimeout(()=>judge(null,true,'豆豆相信你读对啦！👏'), 600);
+  }
+}
+
+function endLesson(){
+  const xpGain = qCorrect*10 + (qWrong===0?20:0);
+  S.xp += xpGain;
+  S.hearts = 5;
+  refresh();
+  const ratio = qCorrect/qTotal;
+  switchTab('learn');
+  const good = qWrong<=2;
+  petSay(good?('通关！豆豆 +'+xpGain+' 经验 ⭐'):'练完啦，明天再来会更棒～', good);
+  renderUnits();
+  toast(good?('🎉 本关 +'+xpGain+' 经验'):'继续加油！');
+  checkUnlocks();
+}
+
+/* ============ 装扮 ============ */
+function checkUnlocks(){
+  const list=document.getElementById('skinList'); list.innerHTML='';
+  SKINS.forEach(s=>{
+    const unlocked=S.level>=s.need;
+    const on=S.skin===s.id;
+    const el=document.createElement('div');
+    el.className='skin'+(on?' on':'')+(unlocked?'':' locked');
+    el.innerHTML=`<div class="sw">${s.ico}</div>${s.name}<br><small>${unlocked?(on?'使用中':'点击用'):('Lv.'+s.need+'解锁')}</small>`;
+    if(unlocked){ el.onclick=()=>{ S.skin=s.id; save(); applySkin(); checkUnlocks(); }; }
+    list.appendChild(el);
+  });
+  applySkin();
+}
+function applySkin(){
+  ['acc-hat','acc-glasses','acc-hat2','acc-glasses2'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='none';
+  });
+  if(S.skin==='hat'){ show('acc-hat'); show('acc-hat2'); }
+  if(S.skin==='glasses'){ show('acc-glasses'); show('acc-glasses2'); }
+}
+function show(id){ const el=document.getElementById(id); if(el) el.style.display='block'; }
+
+/* ============ 导航 ============ */
+function switchTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  if(name==='pet') checkUnlocks();
+}
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>switchTab(t.dataset.tab);
+});
+
+/* ============ 工具 ============ */
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+/* ============ 设置 ============ */
+document.getElementById('set-name').addEventListener('input',e=>{
+  S.name=e.target.value||'豆豆'; save(); refresh();
+});
+document.getElementById('set-rate').addEventListener('input',e=>{ S.rate=parseFloat(e.target.value); save(); });
+document.getElementById('resetBtn').onclick=()=>{
+  if(confirm('确定清空所有进度？')){ localStorage.removeItem(KEY); S=load(); refresh(); renderUnits(); petSay('忘记以前吧，我们重新开始！', true); }
+};
+
+/* ============ 启动 ============ */
+checkStreak();
+refresh();
+renderUnits();
+setMood(S.happiness);
+setTimeout(()=>petSay('今天也来学几个单词吧！点下面选一关 📚', false), 900);
+</script>
+</body>
+</html>
